@@ -51,8 +51,10 @@ function compare(a: string, b: string) {
 function getUsername(u: AppUser): string {
   return ((u as any).app_user ?? (u as any).username ?? "").toString();
 }
-const navigate = useNavigate();
+
 export default function DairePage() {
+
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   // dialog
