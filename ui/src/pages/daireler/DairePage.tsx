@@ -37,6 +37,7 @@ import {
 import { getUsers, type AppUser } from "../../api/userApi";
 import DaireFormDialog from "./DaireFormDialog";
 import { getApiErrorMessage } from "../../api/axios";
+import { useNavigate } from "react-router-dom";
 
 type Order = "asc" | "desc";
 type SortKey = "daireno" | "username";
@@ -50,7 +51,7 @@ function compare(a: string, b: string) {
 function getUsername(u: AppUser): string {
   return ((u as any).app_user ?? (u as any).username ?? "").toString();
 }
-
+const navigate = useNavigate();
 export default function DairePage() {
   const qc = useQueryClient();
 
@@ -283,13 +284,18 @@ export default function DairePage() {
               const u = userMap.get(d.userid);
               const username = u ? getUsername(u) : "";
 
+
+
+
+
               return (
                 <TableRow key={d.id} hover>
                   <TableCell>{d.daireno}</TableCell>
 
                   <TableCell>
+
                     {username ? (
-                      <Chip size="small" variant="outlined" label={username} />
+                      <Chip size="small" variant="outlined" label={username} clickable onClick={(e) => { e.stopPropagation(); navigate(`/users/${d.userid}`); }}/>
                     ) : (
                       <span style={{ fontFamily: "monospace" }}>{d.userid}</span>
                     )}
