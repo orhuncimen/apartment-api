@@ -32,3 +32,8 @@ export const updateKasa = async (id: string, payload: KasaRequest): Promise<Kasa
 export const deleteKasa = async (id: string): Promise<void> => {
   await api.delete(`/kasa/${id}`);
 };
+
+export const getKasa = async (): Promise<Kasa[]> => {
+  const res = await api.get<Kasa[]>("/kasa");
+  return res.data;
+};

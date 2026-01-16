@@ -11,6 +11,9 @@ import UcretTypePage from "./pages/ucrettypes/UcretTypePage";
 import KasaPage from "./pages/kasa/KasaPage";
 import DuyuruPage from "./pages/duyurular/DuyuruPage";
 import YapilacakPage from "./pages/yapilacaklar/YapilacakPage";
+import KasaHareketSelectPage from "./pages/kasaHareket/KasaHareketSelectPage";
+import KasaHareketPage from "./pages/kasaHareket/KasaHareketPage"; // sende path farklıysa düzelt
+
 
 // opsiyonel: kasa hareket route’un varsa (kasaid ile)
 // import KasaHareketPage from "./pages/kasaHareket/KasaHareketPage";
@@ -30,6 +33,8 @@ export default function App() {
           <Route path="/kasa" element={<KasaPage />} />
           <Route path="/duyurular" element={<DuyuruPage />} />
           <Route path="/yapilacaklar" element={<YapilacakPage />} />
+          <Route path="/kasa-hareket" element={<KasaHareketSelectPage />} />
+          <Route path="/kasa/:kasaid/hareket" element={<KasaHareketPage />} />
 
           {/* Kasa hareketi böyle kullanacaksak: */}
           {/* <Route path="/kasa/:kasaid/hareket" element={<KasaHareketPage />} /> */}
