@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { getCustomerById } from "../../api/customerApi";
 import { getUsers, type AppUser } from "../../api/userApi";
+import { getRoles, type AppRole } from "../../api/roleApi";
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,9 +30,20 @@ export default function CustomerDetailPage() {
     queryFn: getUsers,
   });
 
+  const rolesQ = useQuery<AppRole[]>({
+    queryKey: ["roles"],
+    queryFn: getRoles,
+  });
+
+  const roleMap = React.useMemo(() => {
+    const m = new Map<string, AppRole>();
+    (rolesQ.data ?? []).forEach((r) => m.set(r.id, r));
+    return m;
+  }, [rolesQ.data]);
+
   const usersOfCustomer = React.useMemo(() => {
     const all = usersQ.data ?? [];
-    return all.filter((u) => u.customerId === customerId);
+    return all.filter((u) => u.customerid === customerId);
   }, [usersQ.data, customerId]);
 
   if (!customerId) return <div>Geçersiz müşteri id</div>;
@@ -80,16 +92,24 @@ export default function CustomerDetailPage() {
         )}
 
         <Stack spacing={1}>
-          {usersOfCustomer.map((u) => (
-            <Paper key={u.id} variant="outlined" sx={{ p: 1.5 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography>
-                  <b>{u.username}</b>
-                </Typography>
-                <Chip label={`RoleId: ${u.roleId}`} sx={{ fontFamily: "monospace" }} />
-              </Stack>
-            </Paper>
-          ))}
+          {usersOfCustomer.map((u) => {
+            const role = roleMap.get(u.roleid);
+            return (
+              <Paper key={u.id} variant="outlined" sx={{ p: 1.5 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography>
+                    <b>{u.app_user}</b>
+                  </Typography>
+
+                  {role ? (
+                    <Chip label={`${role.aciklama} (code: ${role.code})`} />
+                  ) : (
+                    <Chip label={`RoleId: ${u.roleid}`} sx={{ fontFamily: "monospace" }} />
+                  )}
+                </Stack>
+              </Paper>
+            );
+          })}
         </Stack>
       </Paper>
     </Box>

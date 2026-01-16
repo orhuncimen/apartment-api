@@ -44,10 +44,10 @@ export default function UserFormDialog({
   onClearFieldError,
 }: Props) {
   const [form, setForm] = React.useState<AppUserRequest>({
-    username: "",
-    password: "",
-    customerId: "",
-    roleId: "",
+    app_user: "",
+    app_password: "",
+    customerid: "",
+    roleid: "",
   });
 
   const [showPassword, setShowPassword] = React.useState(false);
@@ -60,7 +60,7 @@ export default function UserFormDialog({
 
   const rolesQ = useQuery<AppRole[]>({
     queryKey: ["roles"],
-    queryFn: () => getRoles(),
+    queryFn: getRoles,
     enabled: open,
   });
 
@@ -69,13 +69,13 @@ export default function UserFormDialog({
 
     if (mode === "edit" && initial) {
       setForm({
-        username: initial.username ?? "",
-        password: "",
-        customerId: initial.customerId ?? "",
-        roleId: initial.roleId ?? "",
+        app_user: initial.app_user ?? "",
+        app_password: "", // editte boş bırakılırsa gönderilmeyecek (UserPage’de iyileştirme)
+        customerid: initial.customerid ?? "",
+        roleid: initial.roleid ?? "",
       });
     } else {
-      setForm({ username: "", password: "", customerId: "", roleId: "" });
+      setForm({ app_user: "", app_password: "", customerid: "", roleid: "" });
     }
 
     setShowPassword(false);
@@ -84,9 +84,9 @@ export default function UserFormDialog({
   const clearErr = (k: keyof AppUserRequest) => onClearFieldError?.(k);
 
   const selectedCustomer =
-    customersQ.data?.find((c) => c.id === form.customerId) ?? null;
+    customersQ.data?.find((c) => c.id === form.customerid) ?? null;
 
-  const selectedRole = rolesQ.data?.find((r) => r.id === form.roleId) ?? null;
+  const selectedRole = rolesQ.data?.find((r) => r.id === form.roleid) ?? null;
 
   const title = mode === "create" ? "Yeni Kullanıcı" : "Kullanıcı Güncelle";
 
@@ -98,30 +98,28 @@ export default function UserFormDialog({
         <Stack spacing={2} mt={1}>
           <TextField
             label="Kullanıcı Adı"
-            value={form.username}
+            value={form.app_user}
             onChange={(e) => {
-              setForm((p) => ({ ...p, username: e.target.value }));
-              clearErr("username");
+              setForm((p) => ({ ...p, app_user: e.target.value }));
+              clearErr("app_user");
             }}
-            error={!!fieldErrors?.username}
-            helperText={fieldErrors?.username}
+            error={!!fieldErrors?.app_user}
+            helperText={fieldErrors?.app_user}
           />
 
-          {/* ✅ Şifre göster/gizle */}
           <TextField
             label="Şifre"
             type={showPassword ? "text" : "password"}
-            value={form.password}
+            value={form.app_password ?? ""}
             onChange={(e) => {
-              setForm((p) => ({ ...p, password: e.target.value }));
-              clearErr("password");
+              setForm((p) => ({ ...p, app_password: e.target.value }));
+              clearErr("app_password");
             }}
-            error={!!fieldErrors?.password}
+            error={!!fieldErrors?.app_password}
             helperText={
               mode === "edit"
-                ? fieldErrors?.password ??
-                  "Boş bırakırsan şifre değişmesin (backend böyleyse)"
-                : fieldErrors?.password
+                ? fieldErrors?.app_password ?? "Boş bırakırsan şifre değişmez (gönderilmeyecek)."
+                : fieldErrors?.app_password
             }
             InputProps={{
               endAdornment: (
@@ -145,15 +143,15 @@ export default function UserFormDialog({
             getOptionLabel={(c) => `${c.name} ${c.surname} (${c.tel})`}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             onChange={(_, val) => {
-              setForm((p) => ({ ...p, customerId: val?.id ?? "" }));
-              clearErr("customerId");
+              setForm((p) => ({ ...p, customerid: val?.id ?? "" }));
+              clearErr("customerid");
             }}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Müşteri"
-                error={!!fieldErrors?.customerId}
-                helperText={fieldErrors?.customerId}
+                error={!!fieldErrors?.customerid}
+                helperText={fieldErrors?.customerid}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -174,15 +172,15 @@ export default function UserFormDialog({
             getOptionLabel={(r) => `${r.aciklama} (code: ${r.code})`}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             onChange={(_, val) => {
-              setForm((p) => ({ ...p, roleId: val?.id ?? "" }));
-              clearErr("roleId");
+              setForm((p) => ({ ...p, roleid: val?.id ?? "" }));
+              clearErr("roleid");
             }}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Rol"
-                error={!!fieldErrors?.roleId}
-                helperText={fieldErrors?.roleId}
+                error={!!fieldErrors?.roleid}
+                helperText={fieldErrors?.roleid}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (

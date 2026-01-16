@@ -41,48 +41,18 @@ import { useNavigate } from "react-router-dom";
 
 type FieldErrors = Partial<Record<keyof AppUserRequest, string>>;
 type Order = "asc" | "desc";
-type SortKey = "username" | "customerName" | "roleName";
-
-/**
- * ✅ SENDEKİ BACKEND alan adları:
- * - app_user, customerid, roleid, app_password
- *
- * Bazı dosyalarda username/customerId/roleId kullanmış olabilirsin.
- * Aşağıdaki helperlar iki formatı da destekler => ekranda boş alan sorunu biter.
- */
-function getUsername(u: AppUser): string {
-  return ((u as any).username ?? (u as any).app_user ?? "").toString();
-}
-function getCustomerId(u: AppUser): string {
-  return ((u as any).customerId ?? (u as any).customerid ?? "").toString();
-}
-function getRoleId(u: AppUser): string {
-  return ((u as any).roleId ?? (u as any).roleid ?? "").toString();
-}
+type SortKey = "app_user" | "customerName" | "roleName";
 
 function roleChipColor(
   code?: string
-):
-  | "default"
-  | "primary"
-  | "secondary"
-  | "success"
-  | "info"
-  | "warning"
-  | "error" {
+): "default" | "primary" | "secondary" | "success" | "info" | "warning" | "error" {
   switch (String(code ?? "").trim()) {
-    case "1":
-      return "primary"; // yönetici
-    case "2":
-      return "success"; // kat maliki
-    case "3":
-      return "error"; // admin
-    case "4":
-      return "info"; // misafir
-    case "5":
-      return "warning"; // denetci
-    default:
-      return "default";
+    case "1": return "primary"; // yönetici
+    case "2": return "success"; // kat maliki
+    case "3": return "error";   // admin
+    case "4": return "info";    // misafir
+    case "5": return "warning"; // denetci
+    default:  return "default";
   }
 }
 
@@ -103,21 +73,20 @@ function extractFieldErrors(err: unknown): FieldErrors {
   }
 
   const msg = data?.message ? String(data.message) : "";
-  const fe: FieldErrors = {};
   const m = msg.toLowerCase();
+  const fe: FieldErrors = {};
 
-  // hem username hem app_user yakalasın diye:
-  if (m.includes("user")) (fe as any).username = msg;
-  if (m.includes("password") || m.includes("şifre")) (fe as any).password = msg;
-  if (m.includes("customer")) (fe as any).customerId = msg;
-  if (m.includes("role")) (fe as any).roleId = msg;
+  if (m.includes("user")) fe.app_user = msg;
+  if (m.includes("password") || m.includes("şifre")) fe.app_password = msg;
+  if (m.includes("customer")) fe.customerid = msg;
+  if (m.includes("role")) fe.roleid = msg;
 
   return fe;
 }
 
 export default function UserPage() {
-  const qc = useQueryClient();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [mode, setMode] = React.useState<"create" | "edit">("create");
@@ -126,11 +95,9 @@ export default function UserPage() {
 
   const [search, setSearch] = React.useState("");
 
-  // sort
-  const [orderBy, setOrderBy] = React.useState<SortKey>("username");
+  const [orderBy, setOrderBy] = React.useState<SortKey>("app_user");
   const [order, setOrder] = React.useState<Order>("asc");
 
-  // pagination
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -140,10 +107,7 @@ export default function UserPage() {
     message: string;
   }>({ open: false, type: "success", message: "" });
 
-  const usersQ = useQuery<AppUser[]>({
-    queryKey: ["users"],
-    queryFn: getUsers,
-  });
+  const usersQ = useQuery<AppUser[]>({ queryKey: ["users"], queryFn: getUsers });
 
   const customersQ = useQuery<Customer[]>({
     queryKey: ["customers"],
@@ -154,6 +118,18 @@ export default function UserPage() {
     queryKey: ["roles"],
     queryFn: getRoles,
   });
+
+  const customerMap = React.useMemo(() => {
+    const m = new Map<string, Customer>();
+    (customersQ.data ?? []).forEach((c) => m.set(c.id, c));
+    return m;
+  }, [customersQ.data]);
+
+  const roleMap = React.useMemo(() => {
+    const m = new Map<string, AppRole>();
+    (rolesQ.data ?? []).forEach((r) => m.set(r.id, r));
+    return m;
+  }, [rolesQ.data]);
 
   const createMut = useMutation({
     mutationFn: (payload: AppUserRequest) => createUser(payload),
@@ -210,32 +186,26 @@ export default function UserPage() {
   };
 
   const onSubmit = (payload: AppUserRequest) => {
-    // ✅ edit modunda şifre boşsa gönderme (undefined bırak)
-    const cleaned: any = { ...payload };
-    const pw =
-      (cleaned.password ?? cleaned.app_password ?? "").toString().trim();
-
-    if (!pw) {
-      delete cleaned.password;
-      delete cleaned.app_password;
-    } else {
-      // hangisi varsa onu taşı
-      if (cleaned.password !== undefined) cleaned.password = pw;
-      if (cleaned.app_password !== undefined) cleaned.app_password = pw;
-    }
-
     if (mode === "create") {
-      createMut.mutate(cleaned as AppUserRequest);
+      // create'de şifre zorunlu ise backend zaten validate eder
+      createMut.mutate(payload);
       return;
     }
     if (!selected) return;
-    updateMut.mutate({ id: (selected as any).id, payload: cleaned as AppUserRequest });
+
+    // ✅ edit: şifre boşsa göndermeyelim
+    const cleaned: AppUserRequest = { ...payload };
+    if (!cleaned.app_password || !String(cleaned.app_password).trim()) {
+      delete cleaned.app_password;
+    }
+
+    updateMut.mutate({ id: selected.id, payload: cleaned });
   };
 
   const onDelete = (u: AppUser) => {
-    const ok = window.confirm(`"${getUsername(u)}" kullanıcısı silinsin mi?`);
+    const ok = window.confirm(`"${u.app_user}" kullanıcısı silinsin mi?`);
     if (!ok) return;
-    deleteMut.mutate((u as any).id);
+    deleteMut.mutate(u.id);
   };
 
   const clearFieldError = (field: keyof AppUserRequest) => {
@@ -251,20 +221,6 @@ export default function UserPage() {
     setOrder("asc");
   };
 
-  // id -> customer obj
-  const customerObjMap = React.useMemo(() => {
-    const m = new Map<string, Customer>();
-    (customersQ.data ?? []).forEach((c) => m.set(c.id, c));
-    return m;
-  }, [customersQ.data]);
-
-  // id -> role obj
-  const roleObjMap = React.useMemo(() => {
-    const m = new Map<string, AppRole>();
-    (rolesQ.data ?? []).forEach((r) => m.set(r.id, r));
-    return m;
-  }, [rolesQ.data]);
-
   const users = usersQ.data ?? [];
 
   const filteredSorted = React.useMemo(() => {
@@ -273,69 +229,37 @@ export default function UserPage() {
     const filtered = !q
       ? users
       : users.filter((u) => {
-          const username = getUsername(u);
-          const customerId = getCustomerId(u);
-          const roleId = getRoleId(u);
+          const c = customerMap.get(u.customerid);
+          const customerName = c ? `${c.name} ${c.surname}` : u.customerid;
+          const r = roleMap.get(u.roleid);
+          const roleName = r ? `${r.aciklama} (${r.code})` : u.roleid;
 
-          const c = customerObjMap.get(customerId);
-          const r = roleObjMap.get(roleId);
-
-          const customerText = c
-            ? `${c.name} ${c.surname} ${c.tel} ${c.email ?? ""}`
-            : customerId;
-
-          const roleText = r ? `${r.aciklama} ${r.code}` : roleId;
-
-          const hay = [username, customerText, roleText].map(normalize).join(" ");
+          const hay = [u.app_user, customerName, roleName].map(normalize).join(" ");
           return hay.includes(q);
         });
 
     const sorted = [...filtered].sort((a, b) => {
-      const aUsername = getUsername(a);
-      const bUsername = getUsername(b);
+      const aCustomer = customerMap.get(a.customerid);
+      const bCustomer = customerMap.get(b.customerid);
+      const aCustomerName = aCustomer ? `${aCustomer.name} ${aCustomer.surname}` : a.customerid;
+      const bCustomerName = bCustomer ? `${bCustomer.name} ${bCustomer.surname}` : b.customerid;
 
-      const aCustomerId = getCustomerId(a);
-      const bCustomerId = getCustomerId(b);
-
-      const aRoleId = getRoleId(a);
-      const bRoleId = getRoleId(b);
-
-      const aCustomerName = customerObjMap.get(aCustomerId)
-        ? `${customerObjMap.get(aCustomerId)!.name} ${customerObjMap.get(aCustomerId)!.surname}`
-        : aCustomerId;
-
-      const bCustomerName = customerObjMap.get(bCustomerId)
-        ? `${customerObjMap.get(bCustomerId)!.name} ${customerObjMap.get(bCustomerId)!.surname}`
-        : bCustomerId;
-
-      const aRoleName = roleObjMap.get(aRoleId)
-        ? `${roleObjMap.get(aRoleId)!.aciklama} (${roleObjMap.get(aRoleId)!.code})`
-        : aRoleId;
-
-      const bRoleName = roleObjMap.get(bRoleId)
-        ? `${roleObjMap.get(bRoleId)!.aciklama} (${roleObjMap.get(bRoleId)!.code})`
-        : bRoleId;
+      const aRole = roleMap.get(a.roleid);
+      const bRole = roleMap.get(b.roleid);
+      const aRoleName = aRole ? `${aRole.aciklama} (${aRole.code})` : a.roleid;
+      const bRoleName = bRole ? `${bRole.aciklama} (${bRole.code})` : b.roleid;
 
       const av =
-        orderBy === "username"
-          ? aUsername
-          : orderBy === "customerName"
-          ? aCustomerName
-          : aRoleName;
-
+        orderBy === "app_user" ? a.app_user : orderBy === "customerName" ? aCustomerName : aRoleName;
       const bv =
-        orderBy === "username"
-          ? bUsername
-          : orderBy === "customerName"
-          ? bCustomerName
-          : bRoleName;
+        orderBy === "app_user" ? b.app_user : orderBy === "customerName" ? bCustomerName : bRoleName;
 
       const c = compare(normalize(av), normalize(bv));
       return order === "asc" ? c : -c;
     });
 
     return sorted;
-  }, [users, search, orderBy, order, customerObjMap, roleObjMap]);
+  }, [users, search, orderBy, order, customerMap, roleMap]);
 
   React.useEffect(() => {
     setPage(0);
@@ -351,12 +275,7 @@ export default function UserPage() {
 
   return (
     <Box p={3}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
-      >
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Kullanıcılar</Typography>
         <Button variant="contained" onClick={openCreate}>
           Yeni Kullanıcı
@@ -388,9 +307,9 @@ export default function UserPage() {
             <TableRow>
               <TableCell>
                 <TableSortLabel
-                  active={orderBy === "username"}
-                  direction={orderBy === "username" ? order : "asc"}
-                  onClick={() => toggleSort("username")}
+                  active={orderBy === "app_user"}
+                  direction={orderBy === "app_user" ? order : "asc"}
+                  onClick={() => toggleSort("app_user")}
                 >
                   Kullanıcı
                 </TableSortLabel>
@@ -422,35 +341,34 @@ export default function UserPage() {
 
           <TableBody>
             {paged.map((u) => {
-              const username = getUsername(u);
-              const customerId = getCustomerId(u);
-              const roleId = getRoleId(u);
+              const c = customerMap.get(u.customerid);
+              const r = roleMap.get(u.roleid);
 
-              const c = customerObjMap.get(customerId);
-              const r = roleObjMap.get(roleId);
+              const customerLabel = c ? `${c.name} ${c.surname}` : u.customerid;
 
               return (
                 <TableRow
-                  key={(u as any).id}
+                  key={u.id}
                   hover
                   sx={{ cursor: "pointer" }}
-                  onClick={() => {
-                    if (customerId) navigate(`/customers/${customerId}`);
-                  }}
+                  onClick={() => navigate(`/customers/${u.customerid}`)} // ✅ row click customer detail
                 >
-                  <TableCell>{username}</TableCell>
+                  <TableCell>{u.app_user}</TableCell>
 
                   <TableCell>
                     {c ? (
                       <Chip
                         size="small"
+                        label={customerLabel}
                         variant="outlined"
-                        label={`${c.name} ${c.surname} • ${c.tel}`}
+                        clickable
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/customers/${c.id}`);
+                        }}
                       />
                     ) : (
-                      <span style={{ fontFamily: "monospace" }}>
-                        {customerId || "-"}
-                      </span>
+                      <span style={{ fontFamily: "monospace" }}>{u.customerid}</span>
                     )}
                   </TableCell>
 
@@ -463,30 +381,15 @@ export default function UserPage() {
                         variant="outlined"
                       />
                     ) : (
-                      <span style={{ fontFamily: "monospace" }}>
-                        {roleId || "-"}
-                      </span>
+                      <span style={{ fontFamily: "monospace" }}>{u.roleid}</span>
                     )}
                   </TableCell>
 
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(u);
-                      }}
-                      aria-label="edit"
-                    >
+                  <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                    <IconButton onClick={() => openEdit(u)} aria-label="edit">
                       <EditIcon />
                     </IconButton>
-
-                    <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(u);
-                      }}
-                      aria-label="delete"
-                    >
+                    <IconButton onClick={() => onDelete(u)} aria-label="delete">
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
