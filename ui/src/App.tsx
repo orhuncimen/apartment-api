@@ -4,6 +4,8 @@ import CustomerDetailPage from "./pages/customers/CustomerDetailPage";
 import UserPage from "./pages/users/UserPage";
 import UserDetailPage from "./pages/users/UserDetailPage";
 import DairePage from "./pages/daireler/DairePage";
+import UcretTypePage from "./pages/ucrettypes/UcretTypePage";
+import KasaPage from "./pages/kasa/KasaPage";
 
 function App() {
   return (
@@ -18,6 +20,10 @@ function App() {
         <Route path="/users/:id" element={<UserDetailPage />} />
 
         <Route path="/daireler" element={<DairePage />} />
+
+        <Route path="/ucrettypes" element={<UcretTypePage />} />
+
+        <Route path="/kasa" element={<KasaPage />} />
       </Routes>
     </BrowserRouter>
   );
