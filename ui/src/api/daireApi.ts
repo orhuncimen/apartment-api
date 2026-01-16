@@ -34,3 +34,5 @@ export const updateDaire = async (id: string, payload: DaireRequest): Promise<Da
 export const deleteDaire = async (id: string): Promise<void> => {
   await api.delete(`/daireler/${id}`);
 };
+
+

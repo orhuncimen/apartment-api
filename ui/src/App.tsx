@@ -6,6 +6,7 @@ import UserDetailPage from "./pages/users/UserDetailPage";
 import DairePage from "./pages/daireler/DairePage";
 import UcretTypePage from "./pages/ucrettypes/UcretTypePage";
 import KasaPage from "./pages/kasa/KasaPage";
+import KasaHareketPage from "./pages/kasaHareket/KasaHareketPage";
 
 function App() {
   return (
@@ -23,7 +24,10 @@ function App() {
 
         <Route path="/ucrettypes" element={<UcretTypePage />} />
 
+
         <Route path="/kasa" element={<KasaPage />} />
+
+        <Route path="/kasa/:kasaid/hareket" element={<KasaHareketPage />} />
       </Routes>
     </BrowserRouter>
   );
