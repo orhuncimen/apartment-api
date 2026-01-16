@@ -7,6 +7,8 @@ import DairePage from "./pages/daireler/DairePage";
 import UcretTypePage from "./pages/ucrettypes/UcretTypePage";
 import KasaPage from "./pages/kasa/KasaPage";
 import KasaHareketPage from "./pages/kasaHareket/KasaHareketPage";
+import DuyuruPage from "./pages/duyurular/DuyuruPage";
+import YapilacakPage from "./pages/yapilacaklar/YapilacakPage";
 
 function App() {
   return (
@@ -28,6 +30,10 @@ function App() {
         <Route path="/kasa" element={<KasaPage />} />
 
         <Route path="/kasa/:kasaid/hareket" element={<KasaHareketPage />} />
+
+        <Route path="/duyurular" element={<DuyuruPage />} />
+
+        <Route path="/yapilacaklar" element={<YapilacakPage />} />
       </Routes>
     </BrowserRouter>
   );
